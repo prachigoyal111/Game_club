@@ -1,7 +1,8 @@
 package com.jarvis.game_club.controller;
-
-import java.util.Optional;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,46 +15,51 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.jarvis.game_club.modal.MemberModal;
-import com.jarvis.game_club.repository.MemberRepository;
+import com.jarvis.game_club.exceptions.IdNotPresentException;
+import com.jarvis.game_club.services.MemberService;
+
 
 @RestController
 @RequestMapping("/members")
-
 public class MemberController {
     @Autowired
-    private MemberRepository memberRepository;
+    private MemberService memberService;
+    private final static Logger log = LoggerFactory.getLogger(MemberController.class);
 
     @PostMapping
-    public MemberModal addMember(@RequestBody MemberModal member) {
-        member.setId(null);
-        return memberRepository.save(member);
+    public ResponseEntity<MemberModal> create(@RequestBody MemberModal member) {
+        MemberModal savedMember = memberService.create(member);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedMember);
     }
 
     @GetMapping
-    public List<MemberModal> getAll() {
-        return memberRepository.findAll();
+    public ResponseEntity<List<MemberModal>> findAll() {
+        
+        List<MemberModal> members = memberService.findAll();
+        return ResponseEntity.status(HttpStatus.OK).body(members);
     }
 
     @GetMapping(path = "/{id}")
-    public MemberModal findById(@PathVariable String id) {
-        return memberRepository.findById(id).orElse(null);
+    public ResponseEntity<MemberModal> findById(@PathVariable String id) throws IdNotPresentException {
+        MemberModal member = memberService.findById(id);
+        return ResponseEntity.status(HttpStatus.OK).body(member);
+    }
+
+    @GetMapping(path = "/phone/{phone}")
+    public ResponseEntity<MemberModal> findByPhone(@PathVariable String phone) throws IdNotPresentException {
+        MemberModal member = memberService.findByPhone(phone);
+        return ResponseEntity.status(HttpStatus.OK).body(member);
     }
 
     @PutMapping(path = "/{id}")
-    public MemberModal update(@PathVariable String id, @RequestBody MemberModal updatedMember)
-    {
-        MemberModal oldMember = memberRepository.findById(id).get();
-        oldMember.setName(updatedMember.getName());
-        oldMember.setBalance(updatedMember.getBalance());
-        oldMember.setPhone(updatedMember.getPhone());
-        MemberModal savedMember = memberRepository.save(oldMember);
-        return savedMember;
+    public ResponseEntity<MemberModal> update(@PathVariable String id, @RequestBody MemberModal member) throws IdNotPresentException {
+        MemberModal updatedMember = memberService.updateMember(id, member);
+        return ResponseEntity.status(HttpStatus.OK).body(updatedMember);
     }
 
     @DeleteMapping(path = "/{id}")
-    public void delete(@PathVariable String id) {
-        memberRepository.deleteById(id);
+    public ResponseEntity<Void> delete(@PathVariable String id) throws IdNotPresentException {
+        memberService.deleteMember(id);
+        return ResponseEntity.noContent().build();
     }
-
-
 }
